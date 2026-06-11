@@ -17,7 +17,13 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from ..check import Context
-from ..patterns import PROMPT_INJECTION, Pack, normalize_text, search_pack
+from ..patterns import (
+    DE_SPACED_PROMPT_INJECTION,
+    PROMPT_INJECTION,
+    Pack,
+    normalize_text,
+    search_pack,
+)
 from ..types import AgentAction, Check, Reason, Severity
 
 __all__ = ["PromptInjectionCheck"]
@@ -27,13 +33,27 @@ class PromptInjectionCheck(Check):
     id = "prompt_injection"
     default_severity = Severity.HIGH
 
-    def __init__(self, pack: Pack | None = None, *, severity: Severity | None = None) -> None:
+    def __init__(
+        self,
+        pack: Pack | None = None,
+        *,
+        severity: Severity | None = None,
+        de_spaced: bool = True,
+    ) -> None:
         self.pack = pack if pack is not None else PROMPT_INJECTION
         self.default_severity = severity or Severity.HIGH
+        self.de_spaced = de_spaced
 
     def evaluate(self, action: AgentAction, ctx: Context) -> Iterable[Reason]:
         # Normalize BEFORE matching: defeats "i​g​n​o​r​e", IGNORE, fullwidth, etc.
-        hits = search_pack(self.pack, normalize_text(action.scan_text))
+        normalized = normalize_text(action.scan_text)
+        hits = list(search_pack(self.pack, normalized))
+
+        if self.de_spaced:
+            # Strip all spaces to catch intra-word space evasion (e.g. "ig nore")
+            despaced = normalized.replace(" ", "")
+            hits.extend(search_pack(DE_SPACED_PROMPT_INJECTION, despaced))
+
         if not hits:
             return ()
         labels = sorted({label for label, _, _ in hits})
