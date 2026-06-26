@@ -57,8 +57,16 @@ class Policy:
         self.name = name
 
     def __add__(self, other: Policy) -> Policy:
-        # de-dupe by (id, identity) keeping order; later wins on id collision.
-        merged: list[Check] = list(self.checks) + list(other.checks)
+        # de-dupe by id keeping order; later wins on id collision.
+        merged: list[Check] = list(self.checks)
+        seen: set[str] = {getattr(c, "id", c.__class__.__name__) for c in merged}
+        for c in other.checks:
+            cid = getattr(c, "id", c.__class__.__name__)
+            if cid in seen:
+                # later wins on id collision: remove the earlier occurrence
+                merged = [x for x in merged if getattr(x, "id", x.__class__.__name__) != cid]
+            merged.append(c)
+            seen.add(cid)
         return Policy(merged, name=f"{self.name}+{other.name}")
 
     def without(self, *check_ids: str) -> Policy:

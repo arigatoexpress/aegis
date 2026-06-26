@@ -14,5 +14,6 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install -e ".[dev]"
       - run: ruff check .
+      - run: make grep-clean
       - run: pytest -q
       - run: python evals/adversarial_suite.py   # evals are part of the gate
