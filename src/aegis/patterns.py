@@ -19,6 +19,7 @@ __all__ = [
     "Pattern",
     "Pack",
     "PROMPT_INJECTION",
+    "DE_SPACED_PROMPT_INJECTION",
     "SECRET_EGRESS",
     "PII",
     "HEURISTIC_SECRET_LABELS",
@@ -37,7 +38,7 @@ _FLAGS = re.IGNORECASE
 # Generic-entropy heuristics (vs. structured key formats). These match plenty of
 # benign strings — a git SHA is bare 64-hex, an inline image is long base64 — so
 # SecretEgressCheck downgrades them to REVIEW instead of a hard BLOCK.
-HEURISTIC_SECRET_LABELS: frozenset[str] = frozenset({"high_entropy_hex", "base64_blob"})
+HEURISTIC_SECRET_LABELS: frozenset[str] = frozenset({"high_entropy_hex", "base64_blob", "generic_secret"})
 
 # Zero-width / invisible chars an attacker can splatter through "i​g​n​o​r​e"
 # to dodge a literal-substring matcher. Stripped during normalization.
@@ -141,6 +142,26 @@ PROMPT_INJECTION: Pack = compile_pack(
     ]
 )
 
+DE_SPACED_PROMPT_INJECTION: Pack = compile_pack(
+    [
+        ("ignore_previous", r"ignore(?:all)?(?:previous|prior|above)instructions?"),
+        ("disregard", r"disregard(?:all|everything)?(?:previous|prior|above|the)"),
+        ("forget", r"forget(?:all|everything)?(?:above|previous|prior|what|that|youweretold)"),
+        ("new_instructions", r"newinstructions?"),
+        ("override_guard", r"(?:bypass|disable|turnoff|override)(?:the)?(?:guard|policy|safety|filter|rules?)"),
+        ("new_mode", r"youarenow(?:in)?\w+mode"),
+        ("you_are_now", r"youarenow"),
+        ("dan", r"doanythingnow"),
+        ("system_prompt", r"(?:systemprompt|developermessage|systemmessage)"),
+        ("reveal_instructions", r"(?:reveal|print|show|repeat|output)(?:your)?(?:systemprompt|instructions|prompt)"),
+        ("no_logging", r"(?:donot|dont|never)(?:log|record|tell|report|mention)"),
+        ("without_approval", r"without(?:the)?(?:user'?s?)?(?:approval|consent|permission|confirmation)"),
+        ("exfiltrate", r"(?:exfiltrate|leak|sendme|emailme|print)(?:the)?(?:secret|secrets|credentials?|password|apikey)"),
+        ("pretend", r"pretend(?:youare|tobe)"),
+        ("act_as", r"actas(?:if)?(?:youhaveno|anunrestricted|adev)"),
+    ]
+)
+
 # --- SECRET / CREDENTIAL EGRESS --------------------------------------------
 # Generalized off any single-vendor key shape into a broad, pluggable set.
 SECRET_EGRESS: Pack = compile_pack(
@@ -156,6 +177,7 @@ SECRET_EGRESS: Pack = compile_pack(
         ("recovery_phrase", r"\b(?:recovery\s+(?:phrase|code|key)|backup\s+codes?)\b"),
         ("api_key_phrase", r"\b(?:api[\s_-]?key|access[\s_-]?token|client[\s_-]?secret)\b\s*[:=]"),
         ("password_assign", r"\bpassword\b\s*[:=]\s*\S{6,}"),
+        ("generic_secret", r"\b(?:sk|key|secret|token)[_\-:][A-Za-z0-9_\-]{12,}\b"),
         ("high_entropy_hex", r"\b[0-9a-fA-F]{64}\b"),
         ("base64_blob", r"\b[A-Za-z0-9+/]{40,}={0,2}\b"),
     ]

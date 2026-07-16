@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
 from typing import Any
+from urllib.parse import unquote
 
 from .types import AgentAction, _coerce_decimal
 
@@ -84,6 +85,10 @@ def scan_targets(action: AgentAction) -> list[tuple[str, str]]:
         surfaces.append(("text", action.scan_text))
     if action.target:
         surfaces.append(("target", action.target))
+        # URL-decode target to detect percent-encoded credentials
+        decoded = unquote(action.target)
+        if decoded != action.target:
+            surfaces.append(("target_decoded", decoded))
     return surfaces
 
 

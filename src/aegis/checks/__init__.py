@@ -21,6 +21,7 @@ from .output_scan import OutputScanCheck
 from .pii import PiiCheck
 from .prompt_injection import PromptInjectionCheck
 from .rate_limit import NonceCheck, RateLimitCheck
+from .runaway_loop import RunawayLoopCheck
 from .secret_egress import SecretEgressCheck
 from .sequence import SequenceCheck
 
@@ -35,6 +36,7 @@ __all__ = [
     "BudgetCheck",
     "RateLimitCheck",
     "NonceCheck",
+    "RunawayLoopCheck",
     "CapabilityCheck",
     "ExpiryCheck",
     "SequenceCheck",
@@ -55,6 +57,7 @@ REGISTRY: dict[str, type] = {
     BudgetCheck.id: BudgetCheck,
     RateLimitCheck.id: RateLimitCheck,
     NonceCheck.id: NonceCheck,
+    RunawayLoopCheck.id: RunawayLoopCheck,
     CapabilityCheck.id: CapabilityCheck,
     ExpiryCheck.id: ExpiryCheck,
     SequenceCheck.id: SequenceCheck,
